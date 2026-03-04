@@ -31,7 +31,7 @@ export default function BibleHomeScreen({ navigation }: { navigation: Nav }) {
   const { colors } = useColorScheme();
   const haptics = useHaptics();
 
-  const { activePlan, getTodayReadings, getProgressPercent, getCurrentDayNumber, markPassageRead } =
+  const { activePlan, getTodayReadings, getProgressPercent, getCurrentDayNumber, markPassageRead, markDayComplete } =
     useBibleStore();
 
   const todayReadings = getTodayReadings();
@@ -69,6 +69,17 @@ export default function BibleHomeScreen({ navigation }: { navigation: Nav }) {
     : 0;
   const totalToday = todayReadings?.passages.length ?? 0;
   const allTodayDone = completedToday === totalToday && totalToday > 0;
+
+  const handleMarkPassageRead = async (passageId: string) => {
+    if (!todayReadings || activePlan.completedPassages.includes(passageId)) return;
+    haptics.success();
+    await markPassageRead(passageId);
+    const allIds = todayReadings.passages.map((p) => p.id);
+    const newCompleted = [...activePlan.completedPassages, passageId];
+    if (allIds.every((id) => newCompleted.includes(id))) {
+      await markDayComplete(dayNumber);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -155,10 +166,7 @@ export default function BibleHomeScreen({ navigation }: { navigation: Nav }) {
                       <View style={[styles.passageRow, { backgroundColor: colors.surface }]}>
                         <AnimatedCheckbox
                           checked={isRead}
-                          onToggle={() => {
-                            haptics.success();
-                            markPassageRead(passage.id);
-                          }}
+                          onToggle={() => handleMarkPassageRead(passage.id)}
                           color={colors.primary}
                           size={22}
                         />

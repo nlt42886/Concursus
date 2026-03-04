@@ -21,8 +21,10 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   const [appReady, setAppReady] = useState(false);
   const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const theme = useSettingsStore((s) => s.theme);
   const loadActivePlan = useBibleStore((s) => s.loadActivePlan);
   const systemScheme = useColorScheme();
+  const isDark = theme === 'dark' || (theme === 'auto' && systemScheme === 'dark');
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -59,7 +61,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <StatusBar barStyle={systemScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <RootNavigator />
       </SafeAreaProvider>
     </GestureHandlerRootView>

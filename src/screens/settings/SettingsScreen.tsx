@@ -45,6 +45,7 @@ export default function SettingsScreen() {
     dailyReminderEnabled,
     setDailyReminderEnabled,
     dailyReminderTime,
+    setDailyReminderTime,
   } = useSettingsStore();
 
   const { activePlan } = useBibleStore();
