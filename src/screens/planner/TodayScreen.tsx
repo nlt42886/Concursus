@@ -246,7 +246,7 @@ function TaskRow({
 }: {
   task: Task;
   onToggle: () => void;
-  colors: ReturnType<typeof import('../../hooks/useColorScheme').useColorScheme>['colors'];
+  colors: any;
 }) {
   return (
     <View style={[styles.taskRow, { backgroundColor: colors.surface }]}>

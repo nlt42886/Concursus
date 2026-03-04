@@ -4,6 +4,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  TextInput,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,10 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 import { useHaptics } from '../../hooks/useHaptics';
 import { BibleTranslation } from '../../types/bible.types';
 import { getPlanById } from '../../utils/planDefinitions';
+import {
+  scheduleDailyReminder,
+  cancelDailyReminders,
+} from '../../services/notificationService';
 
 type Theme = 'light' | 'dark' | 'auto';
 
@@ -152,28 +157,66 @@ export default function SettingsScreen() {
               label="Current Plan"
               value={planDef.name}
               colors={colors}
+              noBorder
             />
           )}
         </Section>
 
         {/* Notifications */}
         <Section title="Notifications" colors={colors}>
-          <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+          <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
               <Text style={[styles.settingTitle, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
                 Daily Reminder
               </Text>
               <Text style={[styles.settingSubtitle, { color: colors.textSecondary, fontFamily: 'Inter_400Regular' }]}>
-                Remind me at {dailyReminderTime}
+                Get a daily nudge to plan and read
               </Text>
             </View>
             <Switch
               value={dailyReminderEnabled}
-              onValueChange={(v) => { haptics.select(); setDailyReminderEnabled(v); }}
+              onValueChange={async (v) => {
+                haptics.select();
+                await setDailyReminderEnabled(v);
+                if (v) {
+                  const [h, m] = dailyReminderTime.split(':').map(Number);
+                  await scheduleDailyReminder(h, m);
+                } else {
+                  await cancelDailyReminders();
+                }
+              }}
               trackColor={{ true: colors.primary, false: colors.border }}
               thumbColor="#FFFFFF"
             />
           </View>
+          {dailyReminderEnabled && (
+            <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+              <Text style={[styles.settingTitle, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
+                Reminder Time
+              </Text>
+              <TextInput
+                value={dailyReminderTime}
+                onChangeText={async (v) => {
+                  await setDailyReminderTime(v);
+                  if (/^\d{2}:\d{2}$/.test(v)) {
+                    const [h, m] = v.split(':').map(Number);
+                    await scheduleDailyReminder(h, m);
+                  }
+                }}
+                placeholder="HH:MM"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numbers-and-punctuation"
+                style={[
+                  styles.timeInput,
+                  {
+                    color: colors.textPrimary,
+                    borderColor: colors.border,
+                    fontFamily: 'Inter_500Medium',
+                  },
+                ]}
+              />
+            </View>
+          )}
         </Section>
 
         {/* About */}
@@ -227,7 +270,7 @@ function SettingRow({
     <View
       style={[
         styles.settingRow,
-        !noBorder && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
+        noBorder && { borderBottomWidth: 0 },
       ]}
     >
       <Text style={[styles.settingTitle, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
@@ -273,6 +316,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
+  },
+  timeInput: {
+    fontSize: 15,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    width: 90,
+    textAlign: 'center',
   },
   settingLeft: { flex: 1 },
   settingTitle: { fontSize: 15 },

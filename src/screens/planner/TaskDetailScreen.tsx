@@ -165,29 +165,34 @@ export default function TaskDetailScreen({
 
         {/* Details card */}
         <View style={[styles.detailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <DetailRow label="📅  Date" value={formatDisplayDate(task.date)} colors={colors} />
-          {task.startTime && (
-            <DetailRow
-              label="⏰  Time"
-              value={`${formatTime(task.startTime)}${task.endTime ? ` – ${formatTime(task.endTime)}` : ''}`}
-              colors={colors}
-            />
-          )}
-          <DetailRow label="🎯  Priority" value={priorityLabel} colors={colors} />
-          {task.tags.length > 0 && (
-            <DetailRow label="🏷  Tags" value={task.tags.join(', ')} colors={colors} />
-          )}
-          {task.recurrence.type !== 'none' && (
-            <DetailRow
-              label="🔁  Repeat"
-              value={task.recurrence.type.charAt(0).toUpperCase() + task.recurrence.type.slice(1)}
-              colors={colors}
-              noBorder
-            />
-          )}
-          {!task.startTime && task.recurrence.type === 'none' && task.tags.length === 0 && (
-            <DetailRow label="🎯  Priority" value={priorityLabel} colors={colors} noBorder />
-          )}
+          {(() => {
+            const rows: { label: string; value: string }[] = [
+              { label: '📅  Date', value: formatDisplayDate(task.date) },
+            ];
+            if (task.startTime) {
+              rows.push({
+                label: '⏰  Time',
+                value: `${formatTime(task.startTime)}${task.endTime ? ` – ${formatTime(task.endTime)}` : ''}`,
+              });
+            }
+            rows.push({ label: '🎯  Priority', value: priorityLabel });
+            if (task.tags.length > 0) {
+              rows.push({ label: '🏷  Tags', value: task.tags.join(', ') });
+            }
+            if (task.recurrence.type !== 'none') {
+              const rt = task.recurrence.type;
+              rows.push({ label: '🔁  Repeat', value: rt.charAt(0).toUpperCase() + rt.slice(1) });
+            }
+            return rows.map((row, i) => (
+              <DetailRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+                colors={colors}
+                noBorder={i === rows.length - 1}
+              />
+            ));
+          })()}
         </View>
 
         {/* Completed banner */}

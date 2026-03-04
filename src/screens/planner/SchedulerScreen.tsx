@@ -67,12 +67,21 @@ export default function SchedulerScreen({ navigation }: { navigation: Nav }) {
 
   const handlePrevWeek = () => {
     haptics.light();
-    setWeekStart(addDays(weekStart, -7));
+    const newStart = addDays(weekStart, -7);
+    setWeekStart(newStart);
+    // Keep the same day-of-week in the new week
+    const newWeek = getWeekDays(newStart);
+    const matchingDay = newWeek.find((d) => d.getDay() === selectedDate.getDay()) ?? newWeek[0];
+    setSelectedDate(matchingDay);
   };
 
   const handleNextWeek = () => {
     haptics.light();
-    setWeekStart(addDays(weekStart, 7));
+    const newStart = addDays(weekStart, 7);
+    setWeekStart(newStart);
+    const newWeek = getWeekDays(newStart);
+    const matchingDay = newWeek.find((d) => d.getDay() === selectedDate.getDay()) ?? newWeek[0];
+    setSelectedDate(matchingDay);
   };
 
   const handleToggleTask = async (task: Task) => {
