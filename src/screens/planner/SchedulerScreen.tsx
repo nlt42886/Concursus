@@ -47,8 +47,8 @@ export default function SchedulerScreen({ navigation }: { navigation: Nav }) {
 
   const dateKey = formatDateKey(selectedDate);
   const tasks = getTasksForDate(dateKey);
-  const incompleteTasks = tasks.filter((t) => !t.isCompleted);
-  const completedTasks = tasks.filter((t) => t.isCompleted);
+  const incompleteTasks = sortByTime(tasks.filter((t) => !t.isCompleted));
+  const completedTasks = sortByTime(tasks.filter((t) => t.isCompleted));
 
   useEffect(() => {
     const start = formatDateKey(weekDays[0]);
@@ -285,6 +285,15 @@ export default function SchedulerScreen({ navigation }: { navigation: Nav }) {
       </Animated.View>
     </View>
   );
+}
+
+function sortByTime(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+    if (a.startTime) return -1;
+    if (b.startTime) return 1;
+    return a.sortOrder - b.sortOrder;
+  });
 }
 
 function shortDate(date: Date): string {

@@ -17,7 +17,7 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 import { useHaptics } from '../../hooks/useHaptics';
 import { PlannerStackParamList } from '../../types/navigation.types';
 import HapticButton from '../../components/common/HapticButton';
-import { formatDateKey, formatDisplayDate } from '../../utils/dateHelpers';
+import { formatDateKey, formatDisplayDate, addDaysToDateStr } from '../../utils/dateHelpers';
 import { Priority } from '../../types/task.types';
 import { parseNaturalLanguage } from '../../services/naturalLanguageParser';
 
@@ -63,6 +63,9 @@ export default function AddTaskModal({
     const timer = setTimeout(() => inputRef.current?.focus(), 350);
     return () => clearTimeout(timer);
   }, []);
+
+  const handlePrevDay = () => { haptics.select(); setDate(addDaysToDateStr(date, -1)); };
+  const handleNextDay = () => { haptics.select(); setDate(addDaysToDateStr(date, 1)); };
 
   const handleTitleChange = (text: string) => {
     setTitle(text);
@@ -157,9 +160,17 @@ export default function AddTaskModal({
             <Text style={[styles.fieldLabel, { color: colors.textSecondary, fontFamily: 'Inter_500Medium' }]}>
               📅  Date
             </Text>
-            <Text style={[styles.fieldValue, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
-              {formatDisplayDate(date)}
-            </Text>
+            <View style={styles.dateNav}>
+              <TouchableOpacity onPress={handlePrevDay} style={styles.dateNavBtn} activeOpacity={0.7}>
+                <Text style={[styles.dateNavArrow, { color: colors.primary }]}>‹</Text>
+              </TouchableOpacity>
+              <Text style={[styles.fieldValue, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
+                {formatDisplayDate(date)}
+              </Text>
+              <TouchableOpacity onPress={handleNextDay} style={styles.dateNavBtn} activeOpacity={0.7}>
+                <Text style={[styles.dateNavArrow, { color: colors.primary }]}>›</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Time row */}
@@ -347,5 +358,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   colorCheck: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter_700Bold' },
+  dateNav: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  dateNavBtn: { padding: 4 },
+  dateNavArrow: { fontSize: 24, lineHeight: 28 },
   saveBtn: { marginTop: 16 },
 });

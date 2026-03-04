@@ -52,8 +52,8 @@ export default function TodayScreen() {
   const { activePlan, getTodayReadings, getProgressPercent, getCurrentDayNumber } = useBibleStore();
 
   const tasks = getTasksForDate(TODAY);
-  const incompleteTasks = tasks.filter((t) => !t.isCompleted);
-  const completedTasks = tasks.filter((t) => t.isCompleted);
+  const incompleteTasks = sortByTime(tasks.filter((t) => !t.isCompleted));
+  const completedTasks = sortByTime(tasks.filter((t) => t.isCompleted));
   const todayReadings = getTodayReadings();
   const progressPct = getProgressPercent();
   const dayNumber = getCurrentDayNumber();
@@ -277,6 +277,15 @@ function TaskRow({
       {task.priority === 'medium' && <Text style={styles.priorityDot}>🟡</Text>}
     </View>
   );
+}
+
+function sortByTime(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+    if (a.startTime) return -1;
+    if (b.startTime) return 1;
+    return a.sortOrder - b.sortOrder;
+  });
 }
 
 const styles = StyleSheet.create({

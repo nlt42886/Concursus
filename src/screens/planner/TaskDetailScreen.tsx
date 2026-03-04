@@ -40,6 +40,8 @@ export default function TaskDetailScreen({
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task?.title ?? '');
+  const [editingTime, setEditingTime] = useState(false);
+  const [timeInput, setTimeInput] = useState(task?.startTime ?? '');
 
   if (!task) {
     return (
@@ -88,6 +90,31 @@ export default function TaskDetailScreen({
         },
       },
     ]);
+  };
+
+  const handleCyclePriority = async () => {
+    const cycle: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
+    const next = cycle[(cycle.indexOf(task.priority) + 1) % 3];
+    haptics.select();
+    await updateTask(task.id, { priority: next });
+  };
+
+  const handleSaveTime = async () => {
+    setEditingTime(false);
+    const trimmed = timeInput.trim();
+    if (!trimmed) {
+      if (task.startTime) { await updateTask(task.id, { startTime: undefined }); haptics.light(); }
+      return;
+    }
+    if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+      const [h, m] = trimmed.split(':').map(Number);
+      if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+        const normalized = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        if (normalized !== task.startTime) { await updateTask(task.id, { startTime: normalized }); haptics.light(); }
+        return;
+      }
+    }
+    setTimeInput(task.startTime ?? '');
   };
 
   const priorityLabel = { low: 'Low 🟢', medium: 'Medium 🟡', high: 'High 🔴' }[task.priority];
@@ -164,36 +191,77 @@ export default function TaskDetailScreen({
         </View>
 
         {/* Details card */}
-        <View style={[styles.detailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {(() => {
-            const rows: { label: string; value: string }[] = [
-              { label: '📅  Date', value: formatDisplayDate(task.date) },
-            ];
-            if (task.startTime) {
-              rows.push({
-                label: '⏰  Time',
-                value: `${formatTime(task.startTime)}${task.endTime ? ` – ${formatTime(task.endTime)}` : ''}`,
-              });
-            }
-            rows.push({ label: '🎯  Priority', value: priorityLabel });
-            if (task.tags.length > 0) {
-              rows.push({ label: '🏷  Tags', value: task.tags.join(', ') });
-            }
-            if (task.recurrence.type !== 'none') {
-              const rt = task.recurrence.type;
-              rows.push({ label: '🔁  Repeat', value: rt.charAt(0).toUpperCase() + rt.slice(1) });
-            }
-            return rows.map((row, i) => (
-              <DetailRow
-                key={row.label}
-                label={row.label}
-                value={row.value}
-                colors={colors}
-                noBorder={i === rows.length - 1}
-              />
-            ));
-          })()}
-        </View>
+        {(() => {
+          const hasTags = task.tags.length > 0;
+          const hasRecurrence = task.recurrence.type !== 'none';
+          const priorityIsLast = !hasTags && !hasRecurrence;
+          return (
+            <View style={[styles.detailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {/* Date — read only */}
+              <DetailRow label="📅  Date" value={formatDisplayDate(task.date)} colors={colors} />
+
+              {/* Time — inline editable */}
+              <TouchableOpacity
+                onPress={() => { setEditingTime(true); setTimeInput(task.startTime ?? ''); }}
+                activeOpacity={0.75}
+              >
+                <View style={[styles.detailRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider }]}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary, fontFamily: 'Inter_400Regular' }]}>
+                    ⏰  Time
+                  </Text>
+                  {editingTime ? (
+                    <TextInput
+                      value={timeInput}
+                      onChangeText={setTimeInput}
+                      onBlur={handleSaveTime}
+                      autoFocus
+                      keyboardType="numbers-and-punctuation"
+                      placeholder="HH:MM"
+                      placeholderTextColor={colors.textTertiary}
+                      style={[styles.detailTimeInput, { color: colors.textPrimary, borderColor: colors.border, fontFamily: 'Inter_500Medium' }]}
+                    />
+                  ) : (
+                    <Text style={[styles.detailValue, { color: task.startTime ? colors.textPrimary : colors.primary, fontFamily: 'Inter_500Medium' }]}>
+                      {task.startTime
+                        ? `${formatTime(task.startTime)}${task.endTime ? ` – ${formatTime(task.endTime)}` : ''}`
+                        : 'Add time +'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Priority — tap to cycle */}
+              <TouchableOpacity onPress={handleCyclePriority} activeOpacity={0.75}>
+                <View style={[
+                  styles.detailRow,
+                  !priorityIsLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
+                ]}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary, fontFamily: 'Inter_400Regular' }]}>
+                    🎯  Priority
+                  </Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary, fontFamily: 'Inter_500Medium' }]}>
+                    {priorityLabel} ›
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Tags — read only */}
+              {hasTags && (
+                <DetailRow label="🏷  Tags" value={task.tags.join(', ')} colors={colors} noBorder={!hasRecurrence} />
+              )}
+
+              {/* Recurrence — read only */}
+              {hasRecurrence && (
+                <DetailRow
+                  label="🔁  Repeat"
+                  value={task.recurrence.type.charAt(0).toUpperCase() + task.recurrence.type.slice(1)}
+                  colors={colors}
+                  noBorder
+                />
+              )}
+            </View>
+          );
+        })()}
 
         {/* Completed banner */}
         {task.isCompleted && task.completedAt && (
@@ -297,6 +365,15 @@ const styles = StyleSheet.create({
   },
   detailLabel: { fontSize: 15 },
   detailValue: { fontSize: 15, maxWidth: '55%', textAlign: 'right' },
+  detailTimeInput: {
+    fontSize: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    width: 100,
+    textAlign: 'center',
+  },
   completedBanner: {
     padding: 14,
     borderRadius: 14,
